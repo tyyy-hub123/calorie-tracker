@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>热量记录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 16px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .summary-card {
+            display: flex;
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .summary-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .summary-item .label {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .summary-item .value {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #4f46e5;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        button:active {
+            background: #4338ca;
+        }
+
+        #food-list {
+            list-style: none;
+        }
+
+        #food-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 15px;
+        }
+
+        #food-list li:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 14px;
+            padding: 4px 8px;
+            width: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="summary-card">
+            <div class="summary-item">
+                <div class="label">已摄入</div>
+                <div class="value" id="consumed">0</div>
+            </div>
+            <div class="summary-item">
+                <div class="label">剩余</div>
+                <div class="value" id="remaining">0</div>
+            </div>
+            <div class="summary-item">
+                <div class="label">目标</div>
+                <div class="value" id="target">0</div>
+            </div>
+        </div>
+
+        <div id="setup-section" class="card">
+            <h2>设置你的基础信息</h2>
+            <div class="form-group">
+                <label>性别</label>
+                <select id="gender">
+                    <option value="male">男</option>
+                    <option value="female">女</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>年龄</label>
+                <input type="number" id="age" placeholder="例如 20">
+            </div>
+            <div class="form-group">
+                <label>身高 (cm)</label>
+                <input type="number" id="height" placeholder="例如 175">
+            </div>
+            <div class="form-group">
+                <label>体重 (kg)</label>
+                <input type="number" id="weight" placeholder="例如 65">
+            </div>
+            <div class="form-group">
+                <label>活动水平</label>
+                <select id="activity">
+                    <option value="1.2">久坐（几乎不运动）</option>
+                    <option value="1.375">轻度活动（每周1-3次）</option>
+                    <option value="1.55" selected>中度活动（每周3-5次）</option>
+                    <option value="1.725">高度活动（每周6-7次）</option>
+                </select>
+            </div>
+            <button onclick="saveProfile()">保存并开始</button>
+        </div>
+
+        <div id="main-section" class="card" style="display: none;">
+            <h2>添加食物</h2>
+            <div class="form-group">
+                <input type="text" id="food-name" placeholder="食物名称（例如：鸡胸肉）">
+            </div>
+            <div class="form-group">
+                <input type="number" id="food-cal" placeholder="热量（千卡）">
+            </div>
+            <button onclick="addFood()">添加</button>
+
+            <h3 style="margin-top: 24px;">今日记录</h3>
+            <ul id="food-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        function calculateBMR(gender, weight, height, age) {
+            if (gender === 'male') {
+                return 10 * weight + 6.25 * height - 5 * age + 5;
+            } else {
+                return 10 * weight + 6.25 * height - 5 * age - 161;
+            }
+        }
+
+        function saveProfile() {
+            const gender = document.getElementById('gender').value;
+            const age = Number(document.getElementById('age').value);
+            const height = Number(document.getElementById('height').value);
+            const weight = Number(document.getElementById('weight').value);
+            const activity = Number(document.getElementById('activity').value);
+
+            if (!age || !height || !weight) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            const bmr = calculateBMR(gender, weight, height, age);
+            const tdee = Math.round(bmr * activity);
+
+            const profile = { gender, age, height, weight, activity, tdee };
+            localStorage.setItem('profile', JSON.stringify(profile));
+
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem('foods_' + today, JSON.stringify([]));
+
+            showMain();
+            updateSummary();
+        }
+
+        function addFood() {
+            const name = document.getElementById('food-name').value.trim();
+            const cal = Number(document.getElementById('food-cal').value);
+
+            if (!name || !cal) {
+                alert('请填写食物名称和热量');
+                return;
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            let foods = JSON.parse(localStorage.getItem('foods_' + today) || '[]');
+            foods.push({ name, cal, id: Date.now() });
+            localStorage.setItem('foods_' + today, JSON.stringify(foods));
+
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-cal').value = '';
+
+            renderFoodList();
+            updateSummary();
+        }
+
+        function deleteFood(id) {
+            const today = new Date().toISOString().slice(0, 10);
+            let foods = JSON.parse(localStorage.getItem('foods_' + today) || '[]');
+            foods = foods.filter(f => f.id !== id);
+            localStorage.setItem('foods_' + today, JSON.stringify(foods));
+            renderFoodList();
+            updateSummary();
+        }
+
+        function renderFoodList() {
+            const today = new Date().toISOString().slice(0, 10);
+            const foods = JSON.parse(localStorage.getItem('foods_' + today) || '[]');
+            const list = document.getElementById('food-list');
+
+            list.innerHTML = foods.map(f => `
+        <li>
+          <span>${f.name} · ${f.cal} 千卡</span>
+          <button class="delete-btn" onclick="deleteFood(${f.id})">删除</button>
+        </li>
+      `).join('');
+        }
+
+        function updateSummary() {
+            const profile = JSON.parse(localStorage.getItem('profile') || '{}');
+            const today = new Date().toISOString().slice(0, 10);
+            const foods = JSON.parse(localStorage.getItem('foods_' + today) || '[]');
+
+            const consumed = foods.reduce((sum, f) => sum + f.cal, 0);
+            const target = profile.tdee || 0;
+            const remaining = target - consumed;
+
+            document.getElementById('consumed').textContent = consumed;
+            document.getElementById('remaining').textContent = remaining;
+            document.getElementById('target').textContent = target;
+        }
+
+        function showMain() {
+            document.getElementById('setup-section').style.display = 'none';
+            document.getElementById('main-section').style.display = 'block';
+            renderFoodList();
+            updateSummary();
+        }
+
+        window.onload = function () {
+            const profile = localStorage.getItem('profile');
+            if (profile) {
+                showMain();
+            }
+        };
+    </script>
+</body>
+
+</html>
